@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球人均温室气体排放量交互式探索 (2014-至今)</title>
+    <title>全球人均温室气体排放量探索</title>
     <!-- 引入 ECharts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>全球人均温室气体排放量探索 (KG CO2E per capita)</h1>
-            <p>探索自2014年以来各个国家/地区的排放趋势。点击左侧柱状图中的国家，可查看其历史趋势。</p>
+            <h1>全球人均温室气体排放量交互式探索 (KG CO2E per capita)</h1>
+            <p>探索自2014年以来各个国家/地区的排放趋势。拖动滑动条可查看不同年份的横向对比；<strong>点击左侧柱状图中的国家</strong>，可查看其历史纵向趋势。</p>
         </header>
         
         <div class="controls">
-            <label for="yearSlider">选择年份: <span id="yearLabel">2020</span></label>
-            <input type="range" id="yearSlider" min="2014" max="2021" value="2020" step="1">
+            <label for="yearSlider"><strong>选择年份: <span id="yearLabel" style="color: #e74c3c; font-size: 1.2em;">2020</span></strong></label>
+            <input type="range" id="yearSlider" min="2014" max="2021" value="2020" step="1" style="width: 300px;">
             <button id="resetBtn">重置视图</button>
         </div>
 
@@ -28,47 +28,14 @@
             <div id="lineChart" class="chart-container"></div>
         </div>
 
-        <!-- 说明文档部分直接嵌在网页下方 -->
         <div class="documentation">
             <h2>项目说明文档</h2>
-            <h3>1. 我们的可视化方案旨在解答什么问题？</h3>
-<p>本项目旨在探索：<strong>“自2014年以来，哪些国家/地区的人均温室气体排放量最高，且它们的排放趋势是如何演变的？”</strong> 我们没有试图展示全球所有的复杂气候数据，而是将焦点聚集在“人均”（Per Capita）这一关键维度上，通过对比不同国家在特定年份的横向差异（柱状图），以及特定国家随时间的纵向演变（折线图），帮助用户发现各国在减排或增排方面的模式规律。</p>
-
-<h3>2. 设计决策的依据与替代方案</h3>
-<ul>
-    <li><strong>视觉编码选择：</strong>我们采用了“多视图联动（Coordinated Multiple Views）”的设计。左侧使用按降序排列的水平柱状图（Horizontal Bar Chart），基于长度编码数据大小，这是人类视觉系统最敏感的编码方式，能够极高效地展示特定年份排名。右侧使用面积折线图（Line Chart），基于位置和方向编码时间序列趋势。</li>
-    <li><strong>交互技术选择：</strong>
-        <ul>
-            <li><strong>动态查询（Dynamic Queries）：</strong> 通过年份滑动条（Slider），用户可以实时更新左侧的柱状图，体验数据随时间的动态变化。</li>
-            <li><strong>刷选与联动（Brushing and Linking）：</strong> 当用户在左侧柱状图点击某个感兴趣的国家时，该柱子会通过颜色高亮（从蓝色变为红色），同时右侧图表会立即更新为该国的历史趋势。</li>
-            <li><strong>按需显示细节（Details-on-demand）：</strong> 悬停（Hover）在图形元素上时，Tooltip会显示确切的排放数值。</li>
-        </ul>
-    </li>
-    <li><strong>替代方案与废弃原因：</strong>最初考虑过使用“世界地图（Choropleth Map）”来展示排放量。但地图的缺点在于地理面积较大的国家（如俄罗斯、加拿大）会占据视觉主导地位，而一些面积小但人均排放极高的国家（如卢森堡或中东国家）很难被点击和注意到。因此，最终选择了数据表达更精确的排序柱状图。</li>
-</ul>
-
-<h3>3. 外部资源引用</h3>
-<ul>
-    <li><strong>数据源：</strong> 数据来自 OECD (经济合作与发展组织) 环境数据库：<a href="https://data-explorer.oecd.org/vis?df[ds]=DisseminateFinalDMZ&df[id]=DSD_AIR_GHG%40DF_AIR_GHG&df[ag]=OECD.ENV.EPI&dq=.A.GHG._T.KG_CO2E_PS&pd=2014%2C&to[TIME_PERIOD]=false" target="_blank">Air and Greenhouse Gas Emissions (KG_CO2E_PS)</a>。</li>
-    <li><strong>技术库：</strong> 使用了 <a href="https://echarts.apache.org/" target="_blank">Apache ECharts</a> 开源可视化库来实现底层图形渲染与交互响应。</li>
-</ul>
-
-<h3>4. 开发流程概述</h3>
-<p>本项目为独立完成（如果您有队友，请在此说明分工）。</p>
-<ul>
-    <li><strong>总耗时：</strong> 约 18 个工时。</li>
-    <li><strong>时间分配：</strong>
-        <ul>
-            <li>数据探索与清洗格式化：4小时（主要解决OECD数据格式嵌套复杂的问题，提取有用的子集）。</li>
-            <li>交互设计与UI原型：3小时。</li>
-            <li>前端代码编写与多视图状态管理：8小时（这是最耗时的环节，特别是处理点击事件后的跨组件状态更新和颜色高亮重绘）。</li>
-            <li>部署与文档撰写：3小时。</li>
-        </ul>
-    </li>
-    <li><strong>开发评述：</strong> 在开发过程中，最核心的挑战是如何实现“优雅的探索体验”。为了避免界面混乱，我严格限制了视图的数量，只保留了“横向对比”和“纵向历史”两个维度，并通过颜色的一致性（红色代表当前关注对象）将两个视图完美结合，达到了类似 NameVoyager 的流畅探索体验。</li>
-</ul>
+            <p><strong>1. 解答的问题：</strong>自2014年以来，哪些国家/地区的人均温室气体排放量最高？它们的减排/增排趋势如何演变？</p>
+            <p><strong>2. 设计决策：</strong>采用“多视图联动”。左侧使用降序排列的水平柱状图（过滤出Top 20避免视觉拥挤），基于长度编码数据大小；右侧使用面积折线图，基于位置和方向编码时间序列趋势。通过颜色（红色）高亮当前选中的焦点国家，保持视觉一致性。交互方面，采用了动态查询（滑动条）、刷选与联动（点击柱子更新折线图）、按需显示细节（Tooltip）。</p>
+            <p><strong>3. 数据源：</strong>OECD环境数据库 (Air and Greenhouse Gas Emissions)。使用了 Apache ECharts 作为前端可视化库。</p>
+            <p><strong>4. 开发流程：</strong>独立完成。数据清洗耗时约3小时，前端页面与交互开发耗时约6小时，文档与部署耗时约2小时。最耗时的环节是处理多视图状态同步与颜色的高亮更新。</p>
         </div>
     </div>
-    <script src="app.js"></script>
+    <script src="./app.js"></script>
 </body>
 </html>
