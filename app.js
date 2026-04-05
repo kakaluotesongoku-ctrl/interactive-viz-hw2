@@ -16,10 +16,25 @@ fetch('./data.json')
         return response.json();
     })
     .then(data => {
-        rawData = data;
-        
+        // 【关键修复在这里】自动将 OECD 的长表头映射为我们需要的小写表头
+        rawData = data.map(d => {
+            return {
+                // 如果有小写的 country 就用小写，没有就找 'Reference area' 或 'REF_AREA'
+                country: d.country || d['Reference area'] || d['REF_AREA'] || '未知国家',
+                // 同理，转换年份
+                year: parseInt(d.year || d['TIME_PERIOD'] || d['Time period']),
+                // 同理，转换排放量数值
+                emissions: parseFloat(d.emissions || d['OBS_VALUE'] || d['Observation value'])
+            };
+        }).filter(d => !isNaN(d.emissions)); // 过滤掉没有数值的空行
+
         // 动态获取数据中最小和最大的年份，初始化滑动条
         const years = [...new Set(rawData.map(d => d.year))].sort((a,b) => a-b);
+        if (years.length === 0) {
+            alert("数据加载成功，但在数据中找不到年份或数值字段，请检查 JSON 内容！");
+            return;
+        }
+
         const minYear = years[0];
         const maxYear = years[years.length - 1];
         
@@ -45,7 +60,6 @@ fetch('./data.json')
         console.error('加载 JSON 失败:', error);
         barChart.hideLoading();
         lineChart.hideLoading();
-        alert('无法加载数据文件！如果你在本地测试，请使用 Live Server 运行。在 GitHub Pages 上则会自动正常显示。');
     });
 
 
