@@ -1,0 +1,57 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+header h1 { 
+    color: #2c3e50; 
+    margin-top: 0;
+}
+.controls {
+    margin: 20px 0;
+    padding: 15px 20px;
+    background-color: #f1f3f5;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+button {
+    padding: 8px 16px;
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2;
+}
+button:hover { background-color: #34495e; }
+.visualization-area {
+    display: flex;
+    gap: 20px;
+    height: 550px;
+    margin-bottom: 30px;
+}
+.chart-container {
+    flex: 1;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+.documentation {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 2px dashed #dee2e6;
+    line-height: 1.8;
+}
