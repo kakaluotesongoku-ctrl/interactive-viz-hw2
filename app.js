@@ -35,24 +35,83 @@ function renderAll() {
 }
 
 function renderBarChart() {
-    const yearData = rawData.filter(d => d.year == currentYear)
-                            .sort((a, b) => a.emissions - b.emissions).slice(-15);
-    
-    barChart.setOption({
+    // 1. 数据处理：过滤当年数据，并进行降序排列
+    const yearData = rawData
+        .filter(d => d.year == currentYear)
+        .sort((a, b) => b.emissions - a.emissions) // 降序排列
+        .slice(0, 15); // 取前15名
+
+    const option = {
         title: { text: `🌏 全球排放排名 (${currentYear})`, left: 'center' },
-        grid: { left: '20%', right: '10%', top: '15%' },
-        xAxis: { type: 'value', name: 'KG CO2E', splitLine: {show: false} },
-        yAxis: { type: 'category', data: yearData.map(d => d.country), axisLabel: { fontWeight: 600 } },
-        animationDurationUpdate: 1200,
+        grid: { left: '20%', right: '12%', top: '15%', bottom: '5%' },
+        xAxis: { 
+            type: 'value', 
+            name: 'KG CO2E', 
+            splitLine: { show: false },
+            max: 'dataMax' // 让X轴随着最大值自动伸缩，避免柱子超出
+        },
+        yAxis: { 
+            type: 'category', 
+            data: yearData.map(d => d.country), 
+            inverse: true, // 【关键】让第一名在最上面
+            animationDuration: 300,
+            animationDurationUpdate: 300,
+            axisLabel: { 
+                fontWeight: 600,
+                interval: 0 // 强制显示所有标签
+            }
+        },
+        // 【关键】全局动画配置，让移动更顺滑
+        animationDuration: 0, 
+        animationDurationUpdate: 1500, // 动画持续1.5秒
+        animationEasing: 'linear',
+        animationEasingUpdate: 'linear',
+        
         series: [{
-            type: 'bar', realtimeSort: true,
+            name: 'Emissions',
+            type: 'bar',
+            realtimeSort: true, // 【关键】开启实时排序
+            seriesLayoutBy: 'column',
             data: yearData.map(d => ({
                 value: d.emissions,
-                itemStyle: { color: d.country === selectedCountry ? '#e74c3c' : '#bdc3c7', borderRadius: [0,5,5,0] }
+                name: d.country, // 必须绑定name，ECharts才能识别哪个柱子在“跑”
+                itemStyle: { 
+                    color: d.country === selectedCountry ? '#e74c3c' : '#3498db',
+                    borderRadius: [0, 5, 5, 0] 
+                }
             })),
-            label: { show: true, position: 'right', valueAnimation: true }
+            label: { 
+                show: true, 
+                position: 'right', 
+                valueAnimation: true, // 数值跳动动画
+                fontFamily: 'monospace' 
+            }
         }]
-    }, true);
+    };
+    
+    // 使用 notMerge: false (默认)，这样旧的柱子会平滑移动到新位置
+    barChart.setOption(option);
+}
+
+// 自动播放逻辑优化
+document.getElementById('playBtn').onclick = function() {
+    isPlaying = !isPlaying;
+    this.innerText = isPlaying ? "⏸ 暂停" : "▶ 自动播放历史";
+    
+    if(isPlaying) {
+        // 定时器设为 2000ms，配合上面 1500ms 的动画，留出 500ms 的停顿感
+        timer = setInterval(() => {
+            if(currentYear >= 2021) {
+                currentYear = 2014; // 循环播放
+            } else {
+                currentYear++;
+            }
+            updateUI();
+            renderAll();
+        }, 2000); 
+    } else {
+        clearInterval(timer);
+    }
 }
 
 function renderLineChart() {
