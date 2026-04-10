@@ -35,46 +35,50 @@ function renderAll() {
 }
 
 function renderBarChart() {
-    // 1. 数据处理：过滤当年数据，并进行降序排列
+    // 【细节 1】获取当年数据后，必须进行降序排列
+    // 只有排序后的数据交给 ECharts，它的实时排序动画才会顺滑
     const yearData = rawData
         .filter(d => d.year == currentYear)
-        .sort((a, b) => b.emissions - a.emissions) // 降序排列
-        .slice(0, 15); // 取前15名
+        .sort((a, b) => b.emissions - a.emissions)
+        .slice(0, 15); // 只取前15名，保证纵轴不拥挤
 
     const option = {
-        title: { text: `🌏 全球排放排名 (${currentYear})`, left: 'center' },
-        grid: { left: '20%', right: '12%', top: '15%', bottom: '5%' },
+        title: { text: `🌏 全球人均排放排名 (${currentYear})`, left: 'center' },
+        grid: { left: '22%', right: '12%', top: '15%', bottom: '5%' },
         xAxis: { 
             type: 'value', 
-            name: 'KG CO2E', 
-            splitLine: { show: false },
-            max: 'dataMax' // 让X轴随着最大值自动伸缩，避免柱子超出
+            name: 'KG',
+            max: 'dataMax', // X轴自动随最大值伸缩
+            splitLine: { show: false } 
         },
         yAxis: { 
             type: 'category', 
             data: yearData.map(d => d.country), 
-            inverse: true, // 【关键】让第一名在最上面
+            inverse: true, // 让第一名在最上方
             animationDuration: 300,
-            animationDurationUpdate: 300,
+            animationDurationUpdate: 300, // 标签切换微调时间
             axisLabel: { 
                 fontWeight: 600,
-                interval: 0 // 强制显示所有标签
-            }
+                fontSize: 13
+            },
+            axisTick: { show: false },
+            axisLine: { show: false }
         },
-        // 【关键】全局动画配置，让移动更顺滑
+        // 【细节 2】动画时长配置是重中之重
+        // animationDurationUpdate 必须略小于定时器的间隔时间
         animationDuration: 0, 
-        animationDurationUpdate: 1500, // 动画持续1.5秒
+        animationDurationUpdate: 1500, // 丝滑移动的时长
         animationEasing: 'linear',
         animationEasingUpdate: 'linear',
-        
+
         series: [{
-            name: 'Emissions',
+            id: 'bar_series', // 【细节 3】必须给 series 一个固定的 ID
+            realtimeSort: true, // 开启实时排序
             type: 'bar',
-            realtimeSort: true, // 【关键】开启实时排序
-            seriesLayoutBy: 'column',
+            // 数据部分必须包含 name 字段作为唯一标识，否则会发生重叠
             data: yearData.map(d => ({
+                name: d.country, // 关键：ECharts 靠这个 name 来追踪柱子去向
                 value: d.emissions,
-                name: d.country, // 必须绑定name，ECharts才能识别哪个柱子在“跑”
                 itemStyle: { 
                     color: d.country === selectedCountry ? '#e74c3c' : '#3498db',
                     borderRadius: [0, 5, 5, 0] 
@@ -83,36 +87,38 @@ function renderBarChart() {
             label: { 
                 show: true, 
                 position: 'right', 
-                valueAnimation: true, // 数值跳动动画
-                fontFamily: 'monospace' 
+                valueAnimation: true, // 数值滚动动画
+                fontFamily: 'monospace',
+                fontWeight: 'bold'
             }
         }]
     };
-    
-    // 使用 notMerge: false (默认)，这样旧的柱子会平滑移动到新位置
-    barChart.setOption(option);
+
+    // 【关键修改】setOption 的第二个参数必须为 false 或不传
+    // 如果传 true (notMerge)，它会清空画布重画，导致动画消失并产生重叠感
+    barChart.setOption(option, false);
 }
 
 // 自动播放逻辑优化
 document.getElementById('playBtn').onclick = function() {
     isPlaying = !isPlaying;
-    this.innerText = isPlaying ? "⏸ 暂停" : "▶ 自动播放历史";
+    this.innerText = isPlaying ? "⏸ 暂停" : "▶ 播放历史";
     
     if(isPlaying) {
-        // 定时器设为 2000ms，配合上面 1500ms 的动画，留出 500ms 的停顿感
+        // 定时器设为 2000ms (2秒跳一年)
+        // 配合上面代码中的 animationDurationUpdate: 1500ms
+        // 留出 500ms 让数据“喘口气”，视觉效果最自然
         timer = setInterval(() => {
-            if(currentYear >= 2021) {
-                currentYear = 2014; // 循环播放
-            } else {
-                currentYear++;
-            }
-            updateUI();
-            renderAll();
+            currentYear++;
+            if(currentYear > 2021) currentYear = 2014;
+            
+            updateUI(); // 更新滑块位置
+            renderAll(); // 重新渲染
         }, 2000); 
     } else {
         clearInterval(timer);
     }
-}
+};
 
 function renderLineChart() {
     const countryData = rawData.filter(d => d.country === selectedCountry).sort((a,b) => a.year - b.year);
