@@ -1,142 +1,144 @@
 let rawData = [];
-let currentYear = 2020;
-let selectedCountry = 'USA'; // 默认国家
+let currentYear = 2014;
+let selectedCountry = "";
+let isPlaying = false;
+let timer = null;
 
 const barChart = echarts.init(document.getElementById('barChart'));
 const lineChart = echarts.init(document.getElementById('lineChart'));
 
-// 显示加载动画
-barChart.showLoading();
-lineChart.showLoading();
+fetch('./data.json').then(res => res.json()).then(data => {
+    rawData = data;
+    // 初始设置
+    const years = [...new Set(rawData.map(d => d.year))].sort();
+    currentYear = years[years.length - 1];
+    
+    // 找到默认国家（最新年份的第一名）
+    selectedCountry = rawData.filter(d => d.year == currentYear)
+                             .sort((a,b) => b.emissions - a.emissions)[0].country;
+    
+    updateAll();
+});
 
-// 使用 ./ 确保在 GitHub Pages 的子目录中也能正确找到文件
-fetch('./data.json')
-    .then(response => {
-        if (!response.ok) throw new Error('网络响应错误');
-        return response.json();
-    })
-    .then(data => {
-        // 【关键修复在这里】自动将 OECD 的长表头映射为我们需要的小写表头
-        rawData = data.map(d => {
-            return {
-                // 如果有小写的 country 就用小写，没有就找 'Reference area' 或 'REF_AREA'
-                country: d.country || d['Reference area'] || d['REF_AREA'] || '未知国家',
-                // 同理，转换年份
-                year: parseInt(d.year || d['TIME_PERIOD'] || d['Time period']),
-                // 同理，转换排放量数值
-                emissions: parseFloat(d.emissions || d['OBS_VALUE'] || d['Observation value'])
-            };
-        }).filter(d => !isNaN(d.emissions)); // 过滤掉没有数值的空行
+function updateAll() {
+    updateBarChart();
+    updateLineChart();
+    updateInsightCard();
+}
 
-        // 动态获取数据中最小和最大的年份，初始化滑动条
-        const years = [...new Set(rawData.map(d => d.year))].sort((a,b) => a-b);
-        if (years.length === 0) {
-            alert("数据加载成功，但在数据中找不到年份或数值字段，请检查 JSON 内容！");
-            return;
-        }
-
-        const minYear = years[0];
-        const maxYear = years[years.length - 1];
-        
-        const slider = document.getElementById('yearSlider');
-        slider.min = minYear;
-        slider.max = maxYear;
-        
-        // 默认显示最新一年和该年排放最高的国家
-        currentYear = maxYear;
-        slider.value = currentYear;
-        document.getElementById('yearLabel').innerText = currentYear;
-        
-        const topCountry = rawData.filter(d => d.year == currentYear).sort((a,b) => b.emissions - a.emissions)[0];
-        if(topCountry) selectedCountry = topCountry.country;
-
-        // 关闭加载动画并渲染
-        barChart.hideLoading();
-        lineChart.hideLoading();
-        updateBarChart(currentYear);
-        updateLineChart(selectedCountry);
-    })
-    .catch(error => {
-        console.error('加载 JSON 失败:', error);
-        barChart.hideLoading();
-        lineChart.hideLoading();
-    });
-
-
-function updateBarChart(year) {
-    // 过滤并取出前20名
-    const yearData = rawData
-        .filter(d => d.year == year)
-        .sort((a, b) => a.emissions - b.emissions)
-        .slice(-20);
+function updateBarChart() {
+    const yearData = rawData.filter(d => d.year == currentYear)
+                            .sort((a, b) => a.emissions - b.emissions).slice(-15);
     
     const option = {
-        title: { text: `${year}年 人均排放量 Top 20 国家/地区`, left: 'center' },
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '20%', right: '8%', bottom: '10%' }, 
-        xAxis: { type: 'value', name: 'KG CO2E' },
-        yAxis: { type: 'category', data: yearData.map(d => d.country) },
+        title: { text: `🌍 排放量排名 (${currentYear})`, left: 'left', textStyle: { fontWeight: 600 } },
+        tooltip: { trigger: 'axis' },
+        grid: { left: '18%', right: '10%', top: '15%', bottom: '10%' },
+        xAxis: { type: 'value', splitLine: { show: false } },
+        yAxis: { 
+            type: 'category', 
+            data: yearData.map(d => d.country),
+            axisLabel: { fontWeight: 600 }
+        },
+        animationDurationUpdate: 1000, // 丝滑的超车动画
         series: [{
             type: 'bar',
+            realtimeSort: true,
             data: yearData.map(d => ({
                 value: d.emissions,
-                itemStyle: { color: d.country === selectedCountry ? '#e74c3c' : '#3498db' }
-            }))
+                itemStyle: { 
+                    color: d.country === selectedCountry ? '#e74c3c' : '#bdc3c7',
+                    borderRadius: [0, 5, 5, 0]
+                }
+            })),
+            label: { show: true, position: 'right', valueAnimation: true }
         }]
     };
     barChart.setOption(option);
 }
 
-function updateLineChart(country) {
-    const countryData = rawData
-        .filter(d => d.country === country)
-        .sort((a, b) => a.year - b.year);
+function updateLineChart() {
+    const countryData = rawData.filter(d => d.country === selectedCountry).sort((a,b) => a.year - b.year);
     
+    // 计算全球平均值作为基准 (创新元素)
+    const years = [...new Set(rawData.map(d => d.year))].sort();
+    const avgData = years.map(y => {
+        const yearEmissions = rawData.filter(d => d.year === y).map(d => d.emissions);
+        return (yearEmissions.reduce((a,b) => a+b, 0) / yearEmissions.length).toFixed(2);
+    });
+
     const option = {
-        title: { text: `${country} 历年排放趋势`, left: 'center' },
+        title: { text: `📈 ${selectedCountry} 历史趋势 vs 全球平均`, left: 'left' },
+        legend: { data: [selectedCountry, '全球平均'], top: '10%' },
         tooltip: { trigger: 'axis' },
-        grid: { left: '15%', right: '10%', bottom: '10%' },
-        xAxis: { type: 'category', data: countryData.map(d => d.year) },
-        yAxis: { type: 'value', name: 'KG CO2E', min: 'dataMin' }, 
-        series: [{
-            data: countryData.map(d => d.emissions),
-            type: 'line',
-            smooth: true,
-            areaStyle: { opacity: 0.2, color: '#e74c3c' },
-            lineStyle: { width: 3, color: '#e74c3c' },
-            itemStyle: { color: '#e74c3c' }
-        }]
+        xAxis: { type: 'category', data: years },
+        yAxis: { type: 'value', name: 'KG CO2E' },
+        series: [
+            {
+                name: selectedCountry,
+                data: countryData.map(d => d.emissions),
+                type: 'line', smooth: true, symbolSize: 10,
+                lineStyle: { width: 4, color: '#e74c3c' },
+                itemStyle: { color: '#e74c3c' },
+                areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(231, 76, 60, 0.4)' },
+                    { offset: 1, color: 'rgba(231, 76, 60, 0)' }
+                ]) },
+                // 标注当前年份的点 (多视图协调)
+                markPoint: {
+                    data: [{ name: '当前', value: currentYear, xAxis: currentYear.toString(), yAxis: countryData.find(d => d.year == currentYear)?.emissions }]
+                }
+            },
+            {
+                name: '全球平均',
+                data: avgData,
+                type: 'line', smooth: true, lineStyle: { type: 'dashed', color: '#bdc3c7' },
+                symbol: 'none'
+            }
+        ]
     };
     lineChart.setOption(option);
 }
 
-// 事件监听
+function updateInsightCard() {
+    const countryData = rawData.filter(d => d.country === selectedCountry).sort((a,b) => a.year - b.year);
+    if(countryData.length > 1) {
+        const first = countryData[0].emissions;
+        const last = countryData[countryData.length-1].emissions;
+        const change = (((last - first) / first) * 100).toFixed(1);
+        const direction = change > 0 ? "增加" : "减少";
+        
+        document.getElementById('insightText').innerHTML = 
+            `已选中 <strong>${selectedCountry}</strong>。自 2014 年以来，该国人均排放量已 <strong>${direction} ${Math.abs(change)}%</strong>。`;
+    }
+}
+
+// 高级交互：自动播放逻辑
+document.getElementById('playBtn').addEventListener('click', function() {
+    isPlaying = !isPlaying;
+    this.innerText = isPlaying ? "⏸ 暂停" : "▶ 播放历史";
+    if(isPlaying) {
+        timer = setInterval(() => {
+            currentYear++;
+            if(currentYear > 2021) currentYear = 2014;
+            document.getElementById('yearSlider').value = currentYear;
+            document.getElementById('yearLabel').innerText = currentYear;
+            updateAll();
+        }, 1500);
+    } else {
+        clearInterval(timer);
+    }
+});
+
+// 点击联动
+barChart.on('click', (p) => {
+    selectedCountry = p.name;
+    updateAll();
+});
+
+// 滑动联动
 document.getElementById('yearSlider').addEventListener('input', (e) => {
-    currentYear = e.target.value;
+    currentYear = parseInt(e.target.value);
     document.getElementById('yearLabel').innerText = currentYear;
-    updateBarChart(currentYear);
-});
-
-barChart.on('click', function (params) {
-    selectedCountry = params.name;
-    updateBarChart(currentYear); 
-    updateLineChart(selectedCountry);
-});
-
-document.getElementById('resetBtn').addEventListener('click', () => {
-    const years = [...new Set(rawData.map(d => d.year))].sort((a,b) => a-b);
-    currentYear = years[years.length - 1];
-    document.getElementById('yearSlider').value = currentYear;
-    document.getElementById('yearLabel').innerText = currentYear;
-    
-    const topCountry = rawData.filter(d => d.year == currentYear).sort((a,b) => b.emissions - a.emissions)[0];
-    if(topCountry) selectedCountry = topCountry.country;
-    
-    updateBarChart(currentYear);
-    updateLineChart(selectedCountry);
-});
-
-window.addEventListener('resize', () => {
-    barChart.resize();
-    lineChart.resize();
+    updateAll();
 });
