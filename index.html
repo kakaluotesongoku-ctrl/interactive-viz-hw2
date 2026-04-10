@@ -10,16 +10,28 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>全球人均温室气体排放量交互式探索 (KG CO2E per capita)</h1>
-            <p>探索自2014年以来各个国家/地区的排放趋势。拖动滑动条可查看不同年份的横向对比；<strong>点击左侧柱状图中的国家</strong>，可查看其历史纵向趋势。</p>
-        </header>
-        
-        <div class="controls">
-            <label for="yearSlider"><strong>选择年份: <span id="yearLabel" style="color: #e74c3c; font-size: 1.2em;">2020</span></strong></label>
-            <input type="range" id="yearSlider" min="2014" max="2021" value="2020" step="1" style="width: 300px;">
-            <button id="resetBtn">重置视图</button>
+    <header>
+        <h1>Climate Insights Explorer</h1>
+        <p>基于 OECD 数据的温室气体排放交互式仪表盘</p>
+    </header>
+
+    <div class="controls">
+        <button id="playBtn">▶ 播放历史</button>
+        <div style="flex-grow: 1; display: flex; align-items: center; gap: 15px;">
+            <span style="font-weight: 600;">年份:</span>
+            <input type="range" id="yearSlider" min="2014" max="2021" value="2020" step="1" style="flex-grow: 1;">
+            <span id="yearLabel" class="stat-val">2020</span>
         </div>
+    </div>
+        <div class="insight-card">
+        <div id="insightText">点击左侧柱状图开始探索特定国家的详细发现...</div>
+        <div id="directionIcon">💡</div>
+    </div>
+
+    <div class="visualization-area">
+        <div id="barChart" class="chart-container"></div>
+        <div id="lineChart" class="chart-container"></div>
+    </div>
 
         <div class="visualization-area">
             <!-- 视图1：特定年份的条形图排序 -->
