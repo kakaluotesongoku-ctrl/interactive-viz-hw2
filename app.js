@@ -110,7 +110,7 @@ document.getElementById('playBtn').onclick = function() {
         // 留出 500ms 让数据“喘口气”，视觉效果最自然
         timer = setInterval(() => {
             currentYear++;
-            if(currentYear > 2021) currentYear = 2014;
+            if(currentYear > 2023) currentYear = 2014;
             
             updateUI(); // 更新滑块位置
             renderAll(); // 重新渲染
@@ -193,7 +193,7 @@ document.getElementById('playBtn').onclick = function() {
     this.innerText = isPlaying ? "⏸ 暂停" : "▶ 自动播放历史";
     if(isPlaying) {
         timer = setInterval(() => {
-            currentYear = currentYear >= 2021 ? 2014 : currentYear + 1;
+            currentYear = currentYear >= 2023 ? 2014 : currentYear + 1;
             updateUI();
             renderAll();
         }, 1500);
