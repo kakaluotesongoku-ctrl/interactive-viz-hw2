@@ -1,144 +1,143 @@
 let rawData = [];
 let currentYear = 2014;
 let selectedCountry = "";
+let isHypeMode = false; // 欺骗模式开关
 let isPlaying = false;
 let timer = null;
 
 const barChart = echarts.init(document.getElementById('barChart'));
 const lineChart = echarts.init(document.getElementById('lineChart'));
 
-fetch('./data.json').then(res => res.json()).then(data => {
-    rawData = data;
-    // 初始设置
-    const years = [...new Set(rawData.map(d => d.year))].sort();
-    currentYear = years[years.length - 1];
-    
-    // 找到默认国家（最新年份的第一名）
-    selectedCountry = rawData.filter(d => d.year == currentYear)
-                             .sort((a,b) => b.emissions - a.emissions)[0].country;
-    
-    updateAll();
-});
+// 1. 数据获取
+fetch('./data.json')
+    .then(res => res.json())
+    .then(data => {
+        rawData = data.map(d => ({
+            country: d.country || d['Reference area'] || d['REF_AREA'],
+            year: parseInt(d.year || d['TIME_PERIOD']),
+            emissions: parseFloat(d.emissions || d['OBS_VALUE'])
+        }));
+        
+        const years = [...new Set(rawData.map(d => d.year))].sort();
+        currentYear = years[years.length - 1];
+        selectedCountry = rawData.filter(d => d.year == currentYear)
+                                 .sort((a,b) => b.emissions - a.emissions)[0].country;
+        
+        updateUI();
+        renderAll();
+    });
 
-function updateAll() {
-    updateBarChart();
-    updateLineChart();
-    updateInsightCard();
+// 2. 核心渲染
+function renderAll() {
+    renderBarChart();
+    renderLineChart();
+    renderInsight();
 }
 
-function updateBarChart() {
+function renderBarChart() {
     const yearData = rawData.filter(d => d.year == currentYear)
                             .sort((a, b) => a.emissions - b.emissions).slice(-15);
     
-    const option = {
-        title: { text: `🌍 排放量排名 (${currentYear})`, left: 'left', textStyle: { fontWeight: 600 } },
-        tooltip: { trigger: 'axis' },
-        grid: { left: '18%', right: '10%', top: '15%', bottom: '10%' },
-        xAxis: { type: 'value', splitLine: { show: false } },
-        yAxis: { 
-            type: 'category', 
-            data: yearData.map(d => d.country),
-            axisLabel: { fontWeight: 600 }
-        },
-        animationDurationUpdate: 1000, // 丝滑的超车动画
+    barChart.setOption({
+        title: { text: `🌏 全球排放排名 (${currentYear})`, left: 'center' },
+        grid: { left: '20%', right: '10%', top: '15%' },
+        xAxis: { type: 'value', name: 'KG CO2E', splitLine: {show: false} },
+        yAxis: { type: 'category', data: yearData.map(d => d.country), axisLabel: { fontWeight: 600 } },
+        animationDurationUpdate: 1200,
         series: [{
-            type: 'bar',
-            realtimeSort: true,
+            type: 'bar', realtimeSort: true,
             data: yearData.map(d => ({
                 value: d.emissions,
-                itemStyle: { 
-                    color: d.country === selectedCountry ? '#e74c3c' : '#bdc3c7',
-                    borderRadius: [0, 5, 5, 0]
-                }
+                itemStyle: { color: d.country === selectedCountry ? '#e74c3c' : '#bdc3c7', borderRadius: [0,5,5,0] }
             })),
             label: { show: true, position: 'right', valueAnimation: true }
         }]
-    };
-    barChart.setOption(option);
+    }, true);
 }
 
-function updateLineChart() {
+function renderLineChart() {
     const countryData = rawData.filter(d => d.country === selectedCountry).sort((a,b) => a.year - b.year);
+    const years = countryData.map(d => d.year);
+    const values = countryData.map(d => d.emissions);
     
-    // 计算全球平均值作为基准 (创新元素)
-    const years = [...new Set(rawData.map(d => d.year))].sort();
-    const avgData = years.map(y => {
-        const yearEmissions = rawData.filter(d => d.year === y).map(d => d.emissions);
-        return (yearEmissions.reduce((a,b) => a+b, 0) / yearEmissions.length).toFixed(2);
-    });
+    // 【欺骗逻辑实现】
+    // 夸大模式下，Y轴不从0开始，而是从最小值的95%开始，夸大波动感
+    const yMin = isHypeMode ? Math.min(...values) * 0.98 : 0;
+    const yMax = isHypeMode ? Math.max(...values) * 1.02 : Math.max(...values) * 1.2;
 
-    const option = {
-        title: { text: `📈 ${selectedCountry} 历史趋势 vs 全球平均`, left: 'left' },
-        legend: { data: [selectedCountry, '全球平均'], top: '10%' },
+    lineChart.setOption({
+        title: { 
+            text: `📈 ${selectedCountry} 趋势 - ${isHypeMode ? '夸大视角' : '客观视角'}`, 
+            left: 'center',
+            textStyle: { color: isHypeMode ? '#e74c3c' : '#2d3436' }
+        },
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: years },
-        yAxis: { type: 'value', name: 'KG CO2E' },
-        series: [
-            {
-                name: selectedCountry,
-                data: countryData.map(d => d.emissions),
-                type: 'line', smooth: true, symbolSize: 10,
-                lineStyle: { width: 4, color: '#e74c3c' },
-                itemStyle: { color: '#e74c3c' },
-                areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                    { offset: 0, color: 'rgba(231, 76, 60, 0.4)' },
-                    { offset: 1, color: 'rgba(231, 76, 60, 0)' }
-                ]) },
-                // 标注当前年份的点 (多视图协调)
-                markPoint: {
-                    data: [{ name: '当前', value: currentYear, xAxis: currentYear.toString(), yAxis: countryData.find(d => d.year == currentYear)?.emissions }]
-                }
+        yAxis: { 
+            type: 'value', 
+            min: yMin.toFixed(1), // 截断坐标轴
+            max: yMax.toFixed(1),
+            name: 'KG CO2E'
+        },
+        series: [{
+            name: selectedCountry,
+            type: 'line', smooth: true, data: values,
+            lineStyle: { width: 5, color: isHypeMode ? '#e74c3c' : '#3498db' },
+            itemStyle: { color: isHypeMode ? '#e74c3c' : '#3498db' },
+            areaStyle: { 
+                color: isHypeMode ? 'rgba(231, 76, 60, 0.2)' : 'rgba(52, 152, 219, 0.1)'
             },
-            {
-                name: '全球平均',
-                data: avgData,
-                type: 'line', smooth: true, lineStyle: { type: 'dashed', color: '#bdc3c7' },
-                symbol: 'none'
-            }
-        ]
-    };
-    lineChart.setOption(option);
+            markPoint: { data: [{ xAxis: currentYear.toString(), yAxis: countryData.find(d => d.year == currentYear)?.emissions }] }
+        }]
+    }, true);
 }
 
-function updateInsightCard() {
-    const countryData = rawData.filter(d => d.country === selectedCountry).sort((a,b) => a.year - b.year);
-    if(countryData.length > 1) {
-        const first = countryData[0].emissions;
-        const last = countryData[countryData.length-1].emissions;
-        const change = (((last - first) / first) * 100).toFixed(1);
-        const direction = change > 0 ? "增加" : "减少";
-        
-        document.getElementById('insightText').innerHTML = 
-            `已选中 <strong>${selectedCountry}</strong>。自 2014 年以来，该国人均排放量已 <strong>${direction} ${Math.abs(change)}%</strong>。`;
-    }
+function renderInsight() {
+    const data = rawData.filter(d => d.country === selectedCountry).sort((a,b) => a.year - b.year);
+    const change = (((data[data.length-1].emissions - data[0].emissions) / data[0].emissions) * 100).toFixed(1);
+    document.getElementById('insightText').innerHTML = isHypeMode ? 
+        `⚠️ <strong>警报：</strong> 在夸大模式下，${selectedCountry} 的排放波动看起来极其剧烈！其实际总变动率为 <strong>${change}%</strong>。` :
+        `💡 <strong>洞察：</strong> ${selectedCountry} 排放变动率为 <strong>${change}%</strong>。坐标轴从0开始，反映了真实的演变比例。`;
 }
 
-// 高级交互：自动播放逻辑
-document.getElementById('playBtn').addEventListener('click', function() {
+// 3. 交互控制
+document.getElementById('toggleHype').onclick = function() {
+    isHypeMode = true;
+    this.classList.add('active');
+    document.getElementById('toggleBias').classList.remove('active');
+    renderAll();
+};
+
+document.getElementById('toggleBias').onclick = function() {
+    isHypeMode = false;
+    this.classList.add('active');
+    document.getElementById('toggleHype').classList.remove('active');
+    renderAll();
+};
+
+document.getElementById('yearSlider').oninput = function() {
+    currentYear = parseInt(this.value);
+    document.getElementById('yearLabel').innerText = currentYear;
+    renderAll();
+};
+
+barChart.on('click', (p) => { selectedCountry = p.name; renderAll(); });
+
+document.getElementById('playBtn').onclick = function() {
     isPlaying = !isPlaying;
-    this.innerText = isPlaying ? "⏸ 暂停" : "▶ 播放历史";
+    this.innerText = isPlaying ? "⏸ 暂停" : "▶ 自动播放历史";
     if(isPlaying) {
         timer = setInterval(() => {
-            currentYear++;
-            if(currentYear > 2021) currentYear = 2014;
-            document.getElementById('yearSlider').value = currentYear;
-            document.getElementById('yearLabel').innerText = currentYear;
-            updateAll();
+            currentYear = currentYear >= 2021 ? 2014 : currentYear + 1;
+            updateUI();
+            renderAll();
         }, 1500);
-    } else {
-        clearInterval(timer);
-    }
-});
+    } else { clearInterval(timer); }
+};
 
-// 点击联动
-barChart.on('click', (p) => {
-    selectedCountry = p.name;
-    updateAll();
-});
-
-// 滑动联动
-document.getElementById('yearSlider').addEventListener('input', (e) => {
-    currentYear = parseInt(e.target.value);
+function updateUI() {
+    document.getElementById('yearSlider').value = currentYear;
     document.getElementById('yearLabel').innerText = currentYear;
-    updateAll();
-});
+}
+
+window.onresize = () => { barChart.resize(); lineChart.resize(); };
