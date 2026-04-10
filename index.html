@@ -12,67 +12,78 @@
     <div class="container">
     <header>
         <h1>全球人均温室气体排放量交互式探索 (KG CO2E per capita)</h1>
+        <!-- 核心：欺骗性设计切换器 -->
+                <div class="mode-toggle">
+                    <span>视角选择: </span>
+                    <button id="toggleBias" class="btn-mode active">客观模式</button>
+                    <button id="toggleHype" class="btn-mode">媒体夸大模式</button>
+                </div>
+            </div>
             <p>探索自2014年以来各个国家/地区的排放趋势。拖动滑动条可查看不同年份的横向对比；<strong>点击左侧柱状图中的国家</strong>，可查看其历史纵向趋势。</p>
     </header>
 
     <div class="controls">
-            <button id="playBtn">▶ 播放历史</button>
+            <button id="playBtn">▶ 自动播放历史</button>
             <div class="slider-box">
-                <span class="label">选择年份:</span>
                 <input type="range" id="yearSlider" min="2014" max="2021" value="2014" step="1">
                 <span id="yearLabel" class="highlight-val">2014</span>
             </div>
-            <button id="resetBtn">重置视图</button>
         </div>
 
-        <!-- 创新叙事元素：洞察卡片 -->
         <div class="insight-card" id="insightCard">
-            <div id="insightText">💡 点击左侧柱状图，探索特定国家的历史排放模式。</div>
+            <div id="insightText">💡 点击左侧柱状图中的国家，查看该国排放模式的“两种解读”。</div>
         </div>
 
-        <!-- 可视化核心区 -->
         <div class="visualization-area">
             <div id="barChart" class="chart-container"></div>
             <div id="lineChart" class="chart-container"></div>
         </div>
 
         <div class="documentation">
-            <h2>项目说明文档</h2>
+            <h2>项目说明文档 (Submission Documentation)</h2>
+        
             <h3>1. 我们的可视化方案旨在解答什么问题？</h3>
-<p>本项目旨在探索：<strong>“自2014年以来，哪些国家/地区的人均温室气体排放量最高，且它们的排放趋势是如何演变的？”</strong> 我们没有试图展示全球所有的复杂气候数据，而是将焦点聚集在“人均”（Per Capita）这一关键维度上，通过对比不同国家在特定年份的横向差异（柱状图），以及特定国家随时间的纵向演变（折线图），帮助用户发现各国在减排或增排方面的模式规律。</p>
-
-<h3>2. 设计决策的依据与替代方案</h3>
-<ul>
-    <li><strong>视觉编码选择：</strong>我们采用了“多视图联动（Coordinated Multiple Views）”的设计。左侧使用按降序排列的水平柱状图（Horizontal Bar Chart），基于长度编码数据大小，这是人类视觉系统最敏感的编码方式，能够极高效地展示特定年份排名。右侧使用面积折线图（Line Chart），基于位置和方向编码时间序列趋势。</li>
-    <li><strong>交互技术选择：</strong>
-        <ul>
-            <li><strong>动态查询（Dynamic Queries）：</strong> 通过年份滑动条（Slider），用户可以实时更新左侧的柱状图，体验数据随时间的动态变化。</li>
-            <li><strong>刷选与联动（Brushing and Linking）：</strong> 当用户在左侧柱状图点击某个感兴趣的国家时，该柱子会通过颜色高亮（从蓝色变为红色），同时右侧图表会立即更新为该国的历史趋势。</li>
-            <li><strong>按需显示细节（Details-on-demand）：</strong> 悬停（Hover）在图形元素上时，Tooltip会显示确切的排放数值。</li>
-        </ul>
-    </li>
-    <li><strong>替代方案与废弃原因：</strong>最初考虑过使用“世界地图（Choropleth Map）”来展示排放量。但地图的缺点在于地理面积较大的国家（如俄罗斯、加拿大）会占据视觉主导地位，而一些面积小但人均排放极高的国家（如卢森堡或中东国家）很难被点击和注意到。因此，最终选择了数据表达更精确的排序柱状图。</li>
-</ul>
-
-<h3>3. 外部资源引用</h3>
-<ul>
-    <li><strong>数据源：</strong> 数据来自 OECD (经济合作与发展组织) 环境数据库：<a href="https://data-explorer.oecd.org/vis?df[ds]=DisseminateFinalDMZ&df[id]=DSD_AIR_GHG%40DF_AIR_GHG&df[ag]=OECD.ENV.EPI&dq=.A.GHG._T.KG_CO2E_PS&pd=2014%2C&to[TIME_PERIOD]=false" target="_blank">Air and Greenhouse Gas Emissions (KG_CO2E_PS)</a>。</li>
-    <li><strong>技术库：</strong> 使用了 <a href="https://echarts.apache.org/" target="_blank">Apache ECharts</a> 开源可视化库来实现底层图形渲染与交互响应。</li>
-</ul>
-
-<h3>4. 开发流程概述</h3>
-<ul>
-    <li><strong>总耗时：</strong> 约 18 个工时。</li>
-    <li><strong>时间分配：</strong>
-        <ul>
-            <li>数据探索与清洗格式化：4小时（主要解决OECD数据格式嵌套复杂的问题，提取有用的子集）。</li>
-            <li>交互设计与UI原型：3小时。</li>
-            <li>前端代码编写与多视图状态管理：8小时（这是最耗时的环节，特别是处理点击事件后的跨组件状态更新和颜色高亮重绘）。</li>
-            <li>部署与文档撰写：3小时。</li>
-        </ul>
-    </li>
-    <li><strong>开发评述：</strong> 在开发过程中，最核心的挑战是如何实现“优雅的探索体验”。为了避免界面混乱，我严格限制了视图的数量，只保留了“横向对比”和“纵向历史”两个维度，并通过颜色的一致性（红色代表当前关注对象）将两个视图完美结合。</li>
-</ul>
+            <p>本项目旨在通过交互式手段深入探索：<strong>“自2014年以来，全球各国家/地区的人均温室气体排放量如何演变？哪些国家是排量‘大户’，而其个体的排放趋势又是否与全球大背景相契合？”</strong></p>
+            <p>相比于基础的数据展示，本项目进一步探讨了一个深层问题：<strong>“可视化设计如何通过视觉操纵（如坐标轴截断）来改读者的判断？”</strong> 通过引入“客观模式”与“媒体夸大模式”的切换，本项目旨在引导用户思考数据可视化中的伦理与真相。</p>
+        
+            <h3>2. 设计决策的依据与替代方案</h3>
+            <ul>
+                <li><strong>视觉编码选择（Visual Encoding）：</strong>
+                    <ul>
+                        <li><strong>动态排名条形图（Bar Chart Race）：</strong> 采用水平条形图展示特定年份排名。我们利用了 ECharts 的 <code>realtimeSort</code> 技术，使柱子在年份切换时能产生丝滑的“超车”动画，直观反映国家间排名的竞争性。</li>
+                        <li><strong>双线面积折线图：</strong> 右侧视图不仅展示选中国家的趋势，还创新性地引入了<strong>“全球平均基准线”</strong>。这为用户提供了一个坐标系，能瞬间判断出该国的排放水平是处于全球领先还是落后。</li>
+                    </ul>
+                </li>
+                <li><strong>高级交互技术（Interaction Techniques）：</strong>
+                    <ul>
+                        <li><strong>自动播放（Auto-play Narrative）：</strong> 提供一键播放功能，将静态数据转化为动态叙事，用户无需手动操作即可观察 2014-2021 年的全球排名大洗牌。</li>
+                        <li><strong>欺骗性切换（Deceptive Mode）：</strong> 响应课程要求，设计了“媒体夸大模式”。在该模式下，系统会自动执行<strong>坐标轴截断（Truncated Y-Axis）</strong>，将微小的波动渲染成剧烈的突变，展示了可视化作为叙事工具的危险性。</li>
+                        <li><strong>即时洞察卡片（Insight Card）：</strong> 实现了自动化文本生成，实时计算选中时段的变动率（% Change），从“数据展示”跨越到“数据解读”。</li>
+                    </ul>
+                </li>
+                <li><strong>替代方案与废弃原因：</strong>最初考虑过使用“世界地图”，但由于本数据集包含许多面积微小但人均排放极高的国家（如卡塔尔、科威特），在地图上几乎不可见，会造成严重的视觉偏见。因此，最终决定采用排序条形图来保证每个国家都有平等的“发声权”。</li>
+            </ul>
+        
+            <h3>3. 外部资源引用</h3>
+            <ul>
+                <li><strong>数据源：</strong> 数据来自 OECD (经济合作与发展组织) 环境数据库：<a href="https://data-explorer.oecd.org/vis?df[ds]=DisseminateFinalDMZ&df[id]=DSD_AIR_GHG%40DF_AIR_GHG&df[ag]=OECD.ENV.EPI&dq=.A.GHG._T.KG_CO2E_PS&pd=2014%2C&to[TIME_PERIOD]=false" target="_blank">Air and Greenhouse Gas Emissions (KG_CO2E_PS)</a>。数据已清洗并处理为 JSON 格式。</li>
+                <li><strong>技术库：</strong> 使用了 <a href="https://echarts.apache.org/" target="_blank">Apache ECharts</a> 实现底层图形渲染与动画，使用原生 JavaScript 处理多视图状态同步。</li>
+            </ul>
+        
+            <h3>4. 开发流程概述</h3>
+            <ul>
+                <li><strong>总耗时：</strong> 约 22 个工时。</li>
+                <li><strong>时间分配：</strong>
+                    <ul>
+                        <li>数据探索与清洗格式化：4小时（主要处理 OECD 的 SDMX 格式转 JSON，并提取各国人均值）。</li>
+                        <li>多视图联动逻辑开发：6小时（处理点击、滑动条与自动播放的同步状态）。</li>
+                        <li><strong>欺骗性设计逻辑：</strong> 4小时（设计两套坐标轴动态计算算法）。</li>
+                        <li>UI 精细化打磨与响应式适配：5小时（采用卡片式布局与 Inter 字体，优化移动端体验）。</li>
+                        <li>文档撰写与部署：3小时。</li>
+                    </ul>
+                </li>
+                <li><strong>开发评述：</strong> 在开发过程中，最核心的挑战在于“多视图协调（CMV）”的深度。当用户在“自动播放”过程中突然点击某个国家，系统需要同时处理时间轴推进、排名重绘以及特定国家的历史轨迹高亮。通过引入统一的状态管理逻辑，我们成功实现了引人入胜且逻辑严密的探索体验。</li>
+            </ul>
         </div>
     </div>
     <script src="./app.js"></script>
